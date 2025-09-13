@@ -277,19 +277,19 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="bg-slate-900/50 p-4 rounded-lg border border-slate-700">
                     <h4 class="font-bold text-red-400">Error 1: Array Indexing Failure</h4>
-                    <pre class="code-block mt-2 text-sm">ERROR: float() argument must be a string or a real number, not 'list', ROOT CAUSE: channels = [float(parts), float(parts)] instead of [float(parts[5]), float(parts[6])]\nIMPACT: Complete sample processing failure, 100% data loss</pre>
+                    <pre class="code-block mt-2 text-sm">ERROR: float() argument must be a string or a real number, not 'list', ROOT CAUSE: channels = [float(parts), float(parts)] instead of [float(parts[5]), float(parts[6])], IMPACT: Complete sample processing failure, 100% data loss</pre>
                 </div>
                 <div class="bg-slate-900/50 p-4 rounded-lg border border-slate-700">
                     <h4 class="font-bold text-red-400">Error 2: Process Architecture Mismatch</h4>
-                    <pre class="code-block mt-2 text-sm">ERROR: Error in processing sample, ROOT CAUSE: process_geophone_data.py contained pipeline code instead of processing logic\nIMPACT: Processing subprocess couldn't handle stdin data streams</pre>
+                    <pre class="code-block mt-2 text-sm">ERROR: Error in processing sample, ROOT CAUSE: process_geophone_data.py contained pipeline code instead of processing logic, IMPACT: Processing subprocess couldn't handle stdin data streams</pre>
                 </div>
                 <div class="bg-slate-900/50 p-4 rounded-lg border border-slate-700">
                     <h4 class="font-bold text-red-400">Error 3: Duplicate Class Definitions</h4>
-                    <pre class="code-block mt-2 text-sm">ERROR: Conflicting class definitions causing runtime failures, ROOT CAUSE: Duplicate GeophonePipeline class definitions in same file\nIMPACT: Unpredictable behavior and initialization failures</pre>
+                    <pre class="code-block mt-2 text-sm">ERROR: Conflicting class definitions causing runtime failures, ROOT CAUSE: Duplicate GeophonePipeline class definitions in same file, IMPACT: Unpredictable behavior and initialization failures</pre>
                 </div>
                 <div class="bg-slate-900/50 p-4 rounded-lg border border-slate-700">
                     <h4 class="font-bold text-red-400">Error 4: Timeout & Synchronization Issues</h4>
-                    <pre class="code-block mt-2 text-sm">ERROR: Process timeout and communication failures, ROOT CAUSE: Insufficient timeout values (5s) and missing error handling\nIMPACT: Pipeline termination and data loss under normal operating conditions</pre>
+                    <pre class="code-block mt-2 text-sm">ERROR: Process timeout and communication failures, ROOT CAUSE: Insufficient timeout values (5s) and missing error handling, IMPACT: Pipeline termination and data loss under normal operating conditions</pre>
                 </div>
             </div>
         </div>
@@ -501,5 +501,6 @@
     </script>
 </body>
 </html>
+
 
 
