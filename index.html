@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geophone Pipeline - Architectural Review</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1rem;
+            margin: 0;
+        }
+        .presentation-container {
+            width: 100%;
+            max-width: 1100px; /* Widescreen 16:9 aspect ratio */
+            aspect-ratio: 16 / 9;
+            position: relative;
+            background-color: #161b22;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            border: 1px solid #30363d;
+        }
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 4rem 5rem;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease-in-out, visibility 0.5s;
+            overflow-y: auto;
+        }
+        .slide.active-slide {
+            opacity: 1;
+            visibility: visible;
+        }
+        .slide h1, .slide h2 {
+            color: #58a6ff;
+            border-bottom: 2px solid #30363d;
+            padding-bottom: 0.75rem;
+            margin-bottom: 2rem;
+            font-weight: 700;
+        }
+        .slide h1 {
+            font-size: 2.5rem;
+            text-align: center;
+        }
+         .slide h2 {
+            font-size: 2rem;
+        }
+        .slide ul {
+            list-style-type: disc;
+            padding-left: 2rem;
+            margin-top: 1rem;
+        }
+        .slide li {
+            margin-bottom: 0.75rem;
+            font-size: 1.125rem;
+            line-height: 1.6;
+        }
+        .slide li strong {
+            color: #8b949e;
+            font-weight: 600;
+        }
+        .slide p {
+            font-size: 1.125rem;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+        .slide table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+            font-size: 1rem;
+        }
+        .slide th, .slide td {
+            border: 1px solid #30363d;
+            padding: 0.75rem;
+            text-align: left;
+        }
+        .slide th {
+            background-color: #1c2128;
+            color: #8b949e;
+            font-weight: 600;
+        }
+        .slide-footer {
+            position: absolute;
+            bottom: 1.5rem;
+            left: 5rem;
+            right: 5rem;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            color: #8b949e;
+        }
+        .navigation-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+        .nav-btn {
+            background-color: #21262d;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .nav-btn:hover:not(:disabled) {
+            background-color: #30363d;
+        }
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .slide-counter {
+            margin: 0 2rem;
+            font-size: 1rem;
+            color: #8b949e;
+            min-width: 50px;
+            text-align: center;
+        }
+        .title-slide {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .title-slide h1 {
+            font-size: 3.5rem;
+            border: none;
+        }
+        .title-slide p {
+            font-size: 1.5rem;
+            color: #8b949e;
+            margin-top: 0.5rem;
+        }
+        .title-slide .footer-info {
+            margin-top: 4rem;
+        }
+        .qa-slide {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .qa-slide h1 {
+            font-size: 4rem;
+            border: none;
+        }
+        .code-block {
+            font-family: monospace;
+            white-space: pre-wrap; /* Allows text to wrap */
+            word-wrap: break-word; /* Breaks long words */
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <!-- Slide 1: Title -->
+        <div class="slide active-slide title-slide">
+            <h1>Geophone Data Pipeline: An Architectural Review</h1>
+            <p class="mt-4">A Summary of System Evolution from Monolithic Script to Concurrent Real-Time Processing</p>
+        </div>
+
+        <!-- Slide 2: Executive Summary & Agenda -->
+        <div class="slide">
+            <h2>Executive Summary & Agenda</h2>
+            <p><strong>Objective:</strong> To document the technical evolution of the geophone data acquisition and processing pipeline, highlighting key architectural decisions, challenges, and the final, robust implementation.</p>
+            <p><strong>Evolutionary Path:</strong></p>
+            <ul>
+                <li><strong>Phase 1: Initial Monolithic Prototype</strong>
+                    <p class="text-sm text-gray-400 pl-4">A single Python script for combined acquisition and processing.</p>
+                </li>
+                <li><strong>Phase 2: System Decoupling & Debugging</strong>
+                    <p class="text-sm text-gray-400 pl-4">Separation of concerns into C for acquisition and Python for processing.</p>
+                    <p class="text-sm text-gray-400 pl-4">Root cause analysis of critical hardware initialization failure.</p>
+                </li>
+                <li><strong>Phase 3: Transition to True Real-Time Concurrency</strong>
+                    <p class="text-sm text-gray-400 pl-4">Implementation of a multi-threaded Producer-Consumer architecture for simultaneous acquisition and processing.</p>
+                </li>
+            </ul>
+            <p><strong>Outcome:</strong> A high-performance, real-time pipeline capable of concurrent data ingestion and complex analytical processing without data loss.</p>
+        </div>
+
+        <!-- Slide 3: Phase 1 -->
+        <div class="slide">
+            <h2>Phase 1 - The Monolithic Prototype</h2>
+            <p><strong>Architecture:</strong> A single, unified Python script (`geophone_data_acquisition_pipeline.py`) handled all system tasks.</p>
+            <p><strong>Workflow:</strong></p>
+            <ul>
+                <li>A main loop directly controlled hardware I/O via the `spidev` library.</li>
+                <li>Data was immediately passed to STA/LTA detection functions.</li>
+                <li>Event-triggered feature extraction and ML classification occurred within the same process.</li>
+            </ul>
+            <p><strong>Analysis:</strong></p>
+            <ul>
+                <li><strong>Advantages:</strong> Rapid prototyping and initial concept validation. Simplified code structure with a single entry point.</li>
+                <li><strong>Critical Disadvantages:</strong>
+                    <ul class="list-disc pl-6">
+                        <li><strong>Blocking I/O:</strong> CPU-intensive processing (FFT, ML inference) could block the main loop, causing missed ADC samples and compromising the integrity of the 240 Hz sampling rate.</li>
+                        <li><strong>Lack of Modularity:</strong> Hardware control, signal processing, and machine learning logic were tightly coupled, making debugging and maintenance difficult.</li>
+                        <li><strong>Scalability Issues:</strong> Incapable of handling higher data rates or more complex processing without significant data loss.</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Slide 4: Phase 2 -->
+        <div class="slide">
+            <h2>Phase 2 - Mandate for Decoupling</h2>
+            <p><strong>Directive:</strong> Refactor the pipeline to separate low-level hardware acquisition from high-level data processing.</p>
+            <ul>
+                <li><strong>Acquisition Module:</strong> To be implemented in C for performance and proximity to hardware.</li>
+                <li><strong>Processing Module:</strong> To remain in Python to leverage its rich data science and ML ecosystem.</li>
+            </ul>
+            <p><strong>Architecture: Sequential File-Based Pipeline</strong></p>
+            <p><strong>Workflow:</strong></p>
+            <ol class="list-decimal pl-6">
+                <li>A master script (`geophone_pipeline.py`) orchestrates the process.</li>
+                <li>It first compiles and executes the C program (`adc_acquisition.c`).</li>
+                <li>The C module acquires a pre-defined number of samples and writes them to a timestamped `.csv` file.</li>
+                <li>Upon completion of the C executable, the master script calls the Python processing script (`process_geophone_data.py`), passing the generated `.csv` filename as an argument.</li>
+            </ol>
+        </div>
+
+        <!-- Slide 5: Phase 2 Challenge -->
+        <div class="slide">
+            <h2>Phase 2 - Technical Challenge & Resolution</h2>
+            <p><strong>Problem:</strong> The initial C acquisition module produced anomalous data—all channels consistently read zero voltage. This halted the entire pipeline as no valid data was generated for processing.</p>
+            <p><strong>Root Cause Analysis:</strong></p>
+            <ul>
+                <li>Direct comparison of the Python `spidev` implementation with the new C code revealed an <strong>incomplete ADC initialization sequence</strong>.</li>
+                <li>The C code was successfully communicating via SPI but failed to send the specific <strong>UNLOCK</strong> command (`0x06, 0x55`) required to enable register writes.</li>
+                <li>Consequently, all subsequent configuration commands (setting gain, enabling channels, etc.) were ignored by the ADC, leaving it in its default, inactive state.</li>
+            </ul>
+            <p><strong>Resolution:</strong></p>
+            <ul>
+                <li>The full, correct initialization sequence was implemented in the C module, mirroring the logic from the original working Python prototype. This included: Hardware Reset, Waiting for `DRDY`, Sending the **UNLOCK** command, Verifying status, Writing to all configuration registers, and Sending `WAKEUP`.</li>
+            </ul>
+            <p><strong>Outcome:</strong> This fix resulted in correct voltage readings and enabled the successful execution of the sequential pipeline.</p>
+        </div>
+
+        <!-- Slide 6: Phase 2 Limitations -->
+        <div class="slide">
+            <h2>Phase 2 - Limitations of the Sequential Model</h2>
+            <p>While functional, the file-based sequential architecture did not meet the requirement for real-time, simultaneous operation.</p>
+            <p><strong>Identified Limitations:</strong></p>
+            <ul>
+                <li><strong>Processing Latency:</strong> Analysis could only begin *after* the entire acquisition block was completed. This is unsuitable for real-time event detection and response.</li>
+                <li><strong>I/O Bottleneck:</strong> The system's performance was limited by the speed of writing to and reading from the disk (SD card on the Raspberry Pi), creating a significant bottleneck.</li>
+                <li><strong>No Concurrency:</strong> The system was either acquiring data or processing it, but never both at the same time. The processing time directly added to the system's "blind" time between acquisitions.</li>
+                <li><strong>Scalability:</strong> Increasing the number of samples to acquire would proportionally increase the delay before processing could start.</li>
+            </ul>
+        </div>
+
+        <!-- CORRECTED STRUCTURE: The next two slides were previously nested. They are now separate, sibling slides. -->
+
+        <!-- Slide 7: Critical Technical Issues -->
+        <div class="slide">
+            <h2>Critical Technical Issues Identified</h2>
+            <h3 class="text-xl text-slate-400 mb-4">Primary System Failures</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-slate-900/50 p-4 rounded-lg border border-slate-700">
+                    <h4 class="font-bold text-red-400">Error 1: Array Indexing Failure</h4>
+                    <pre class="code-block mt-2 text-sm">ERROR: float() argument must be a string or a real number, not 'list'\nROOT CAUSE: channels = [float(parts), float(parts)] instead of [float(parts[5]), float(parts[6])]\nIMPACT: Complete sample processing failure, 100% data loss</pre>
+                </div>
+                <div class="bg-slate-900/50 p-4 rounded-lg border border-slate-700">
+                    <h4 class="font-bold text-red-400">Error 2: Process Architecture Mismatch</h4>
+                    <pre class="code-block mt-2 text-sm">ERROR: Error in processing sample\nROOT CAUSE: process_geophone_data.py contained pipeline code instead of processing logic\nIMPACT: Processing subprocess couldn't handle stdin data streams</pre>
+                </div>
+                <div class="bg-slate-900/50 p-4 rounded-lg border border-slate-700">
+                    <h4 class="font-bold text-red-400">Error 3: Duplicate Class Definitions</h4>
+                    <pre class="code-block mt-2 text-sm">ERROR: Conflicting class definitions causing runtime failures\nROOT CAUSE: Duplicate GeophonePipeline class definitions in same file\nIMPACT: Unpredictable behavior and initialization failures</pre>
+                </div>
+                <div class="bg-slate-900/50 p-4 rounded-lg border border-slate-700">
+                    <h4 class="font-bold text-red-400">Error 4: Timeout & Synchronization Issues</h4>
+                    <pre class="code-block mt-2 text-sm">ERROR: Process timeout and communication failures\nROOT CAUSE: Insufficient timeout values (5s) and missing error handling\nIMPACT: Pipeline termination and data loss under normal operating conditions</pre>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slide 8: Solution Architecture -->
+        <div class="slide">
+             <h2>Solution Architecture Overview</h2>
+             <h3 class="text-xl text-slate-400 mb-4">Rate-Controlled Pipeline Architecture</h3>
+             <pre class="code-block my-4 text-center text-sm leading-loose">
+┌─────────────────────┐      ┌─────────────────────┐      ┌─────────────────────┐
+│   ADC Acquisition   │      │  Pipeline Manager   │      │  Processing Engine  │
+│   (adc_acquisition) │──────│ (geophone_pipeline) │──────│(process_geophone)   │
+│                     │      │                     │      │                     │
+│ • 240 Hz sampling   │      │ • Queue management  │      │ • STA/LTA detection │
+│ • SPI communication │      │ • Thread sync       │      │ • Feature extraction│
+│ • Real-time output  │      │ • Error handling    │      │ • Rate control      │
+└─────────────────────┘      └─────────────────────┘      └─────────────────────┘
+             </pre>
+             <h3 class="text-xl text-slate-400 mb-4">Key Architectural Improvements</h3>
+             <ul class="space-y-2 list-disc list-inside text-slate-300">
+                <li><b>Rate Synchronization</b>: 240 Hz timing control across all components.</li>
+                <li><b>Thread-Safe Communication</b>: Queue-based data transfer with backpressure handling.</li>
+                <li><b>Comprehensive Error Recovery</b>: Timeout management and graceful degradation.</li>
+                <li><b>Modular Design</b>: Clear separation of acquisition, control, and processing logic.</li>
+             </ul>
+        </div>
+        
+        <!-- Slide 9: Phase 3 Mandate -->
+        <div class="slide">
+            <h2>Phase 3 - The Final Mandate: True Concurrency</h2>
+            <p><strong>Directive:</strong> Re-architect the pipeline to enable simultaneous data acquisition and processing, ensuring that analysis occurs in near real-time as data is being sampled.</p>
+            <p><strong>Chosen Architecture: Multi-Threaded Producer-Consumer Model</strong></p>
+            <p><strong>Core Concepts:</strong></p>
+            <ul>
+                <li><strong>Producer (Acquisition Thread):</strong> A dedicated, lightweight thread responsible solely for high-frequency data acquisition from the ADC. Its only task is to read samples and place them into a shared buffer.</li>
+                <li><strong>Consumer (Processing Thread):</strong> A separate thread that retrieves data from the shared buffer and performs the computationally expensive STA/LTA, feature extraction, and ML processing tasks.</li>
+                <li><strong>Thread-Safe Queue:</strong> A shared data structure (`queue.Queue`) that acts as the decoupling buffer between the two threads, ensuring that the time-critical producer is never blocked by the consumer.</li>
+            </ul>
+        </div>
+
+        <!-- Slide 10: Phase 3 Implementation -->
+        <div class="slide">
+            <h2>Phase 3 - Implementation Details</h2>
+            <p><strong>Architectural Shift:</strong> The logic from all three previous files (`adc_acquisition.c`, `process_geophone_data.py`, `geophone_pipeline.py`) was merged into a single, cohesive multi-threaded Python application.</p>
+            <p><strong>Key Implementation Components:</strong></p>
+            <ul>
+                <li><strong>`acquisition_producer()` function:</strong>
+                    <ul class="list-disc pl-6">
+                        <li>Re-implements the C hardware logic in Python using the `spidev` library for direct hardware control.</li>
+                        <li>Runs in a dedicated `threading.Thread`.</li>
+                        <li>Maintains a precise 240 Hz sampling rate using a calibrated sleep interval.</li>
+                        <li>Places each sample `(timestamp, [voltages])` into the shared queue.</li>
+                    </ul>
+                </li>
+                <li><strong>`processing_consumer()` function:</strong>
+                     <ul class="list-disc pl-6">
+                        <li>Runs in a second `threading.Thread`.</li>
+                        <li>Continuously pulls data from the queue using a blocking `get()` call, which efficiently waits for new data.</li>
+                        <li>Feeds the samples into the existing `ParallelSTALTAProcessor` for analysis.</li>
+                    </ul>
+                </li>
+                <li><strong>Main Thread:</strong>
+                     <ul class="list-disc pl-6">
+                        <li>Responsible for initialization (hardware, ML models), thread creation, and graceful shutdown management via a `threading.Event`.</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Slide 11: Comparison Table -->
+        <div class="slide">
+            <h2>Architectural Comparison: Phase 1 vs. Phase 2 vs. Phase 3</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Phase 1 (Monolithic)</th>
+                        <th>Phase 2 (Sequential)</th>
+                        <th>Phase 3 (Concurrent)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Architecture</strong></td>
+                        <td>Single Python Script</td>
+                        <td>Separate C (Acq) & Python (Proc) Executables</td>
+                        <td>Single Multi-Threaded Python Script</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Language(s)</strong></td>
+                        <td>Python</td>
+                        <td>C, Python</td>
+                        <td>Python</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Data Flow</strong></td>
+                        <td>In-Memory Function Calls</td>
+                        <td>Disk I/O (File-based)</td>
+                        <td>In-Memory Thread-Safe Queue</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Real-Time Capability</strong></td>
+                        <td>Low (Prone to blocking)</td>
+                        <td>None (Sequential batch processing)</td>
+                        <td>High (Simultaneous acquisition & processing)</td>
+                    </tr>
+                     <tr>
+                        <td><strong>Key Limitation</strong></td>
+                        <td>Sample loss due to blocking</td>
+                        <td>High latency; I/O bottleneck</td>
+                        <td>Complexity of managing threads (concurrency)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Key Advantage</strong></td>
+                        <td>Simplicity</td>
+                        <td>Clear separation of hardware/software concerns</td>
+                        <td>Decoupled, non-blocking, true real-time performance</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Slide 12: Conclusion -->
+        <div class="slide">
+            <h2>Conclusion & Next Steps</h2>
+            <p><strong>Summary of Achievements:</strong></p>
+            <ul>
+                <li>Successfully migrated from a basic monolithic script to a professional, multi-process sequential pipeline, overcoming critical hardware initialization bugs through detailed root cause analysis.</li>
+                <li>Evolved the system into a final, highly performant, concurrent architecture using a producer-consumer model, achieving the core objective of simultaneous real-time data acquisition and processing.</li>
+                <li>The final system is robust, modular, and scalable, with clear separation of concerns between time-critical acquisition and CPU-bound processing tasks.</li>
+            </ul>
+            <p><strong>Potential Next Steps:</strong></p>
+            <ul>
+                <li><strong>Data Persistence:</strong> Integrate a time-series database (e.g., InfluxDB) to replace file-based event logging for more robust data management and querying.</li>
+                <li><strong>Dynamic Model Updates:</strong> Implement a mechanism to remotely update the trained machine learning models without halting the pipeline.</li>
+                <li><strong>Enhanced Error Recovery:</strong> Add more sophisticated error handling and automatic restart capabilities for long-term, unattended operation.</li>
+                <li><strong>Performance Monitoring:</strong> Develop a dashboard to visualize queue size, thread performance, and processing latency in real-time.</li>
+            </ul>
+        </div>
+        
+        <!-- Slide 13: Q&A -->
+        <div class="slide qa-slide">
+            <h1>Q&A</h1>
+            <p class="mt-8 text-xl">Thank you.</p>
+            <p class="text-xl">Open for questions.</p>
+        </div>
+    </div>
+
+    <div class="navigation-controls">
+        <button id="prev-btn" class="nav-btn">Previous</button>
+        <span id="slide-counter" class="slide-counter">1 / 13</span>
+        <button id="next-btn" class="nav-btn">Next</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const slides = document.querySelectorAll('.slide');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const slideCounter = document.getElementById('slide-counter');
+            let currentSlide = 0;
+            // The total number of slides is determined dynamically by the number of '.slide' elements.
+            const totalSlides = slides.length;
+
+            function updateSlideDisplay() {
+                slides.forEach((slide, index) => {
+                    // Toggles the 'active-slide' class based on the current slide index.
+                    slide.classList.toggle('active-slide', index === currentSlide);
+                });
+                // Updates the counter text.
+                slideCounter.textContent = `${currentSlide + 1} / ${totalSlides}`;
+                
+                // Disables/enables navigation buttons at the start and end of the presentation.
+                prevBtn.disabled = currentSlide === 0;
+                nextBtn.disabled = currentSlide === totalSlides - 1;
+            }
+
+            function showNextSlide() {
+                if (currentSlide < totalSlides - 1) {
+                    currentSlide++;
+                    updateSlideDisplay();
+                }
+            }
+
+            function showPrevSlide() {
+                if (currentSlide > 0) {
+                    currentSlide--;
+                    updateSlideDisplay();
+                }
+            }
+
+            nextBtn.addEventListener('click', showNextSlide);
+            prevBtn.addEventListener('click', showPrevSlide);
+            
+            // Keyboard navigation for accessibility and convenience.
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight') {
+                    e.preventDefault(); // Prevents default browser action for arrow keys
+                    showNextSlide();
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    showPrevSlide();
+                }
+            });
+
+            // Initial call to set up the first slide correctly.
+            updateSlideDisplay();
+        });
+    </script>
+</body>
+</html>
